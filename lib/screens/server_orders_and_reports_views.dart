@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../controllers/pos_controller.dart';
 import '../models/pos_models.dart';
+import '../services/receipt_pdf_service.dart';
 import '../theme/manga_theme.dart';
 import '../widgets/manga_widgets.dart';
 
@@ -49,55 +50,31 @@ class ServerTicketsHistoryView extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      'Total de órdenes registradas: ${orders.length} · Clientes conectados: ${controller.lanService.connectedClientsCount}',
+                      'Total de órdenes: ${orders.length} · Siguiente orden: #${controller.nextOrderNumber}',
                       style: MangaFonts.sans(
                           fontSize: 11.5, color: Colors.black87),
                     ),
                   ],
                 ),
-                Row(
-                  children: [
-                    MangaPressButton(
-                      onTap: () => controller.lanService
-                          .broadcastFullSync(controller.orders),
-                      height: isCompactHeight ? 36 : 40,
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      backgroundColor: MangaColors.accentYellow,
-                      child: Row(
-                        children: [
-                          const Icon(Icons.sync_rounded,
-                              size: 16, color: Colors.black),
-                          const SizedBox(width: 4),
-                          Text(
-                            'SINCRONIZAR CLIENTES',
-                            style: MangaFonts.comic(
-                              fontSize: isCompactHeight ? 14 : 16,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (orders.any((o) =>
-                        o.status == OrderStatus.completed ||
-                        o.status == OrderStatus.cancelled)) ...[
-                      const SizedBox(width: 8),
-                      MangaPressButton(
-                        onTap: () => controller.clearCompletedOrdersHistory(),
-                        height: isCompactHeight ? 36 : 40,
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        backgroundColor: MangaColors.dangerSoftRed,
-                        child: Center(
-                          child: Text(
-                            'LIMPIAR ENTREGADAS',
-                            style: MangaFonts.comic(
-                              fontSize: isCompactHeight ? 14 : 16,
-                              color: MangaColors.dangerRed,
-                            ),
-                          ),
+                MangaPressButton(
+                  onTap: () => controller.lanService
+                      .broadcastFullSync(controller.orders),
+                  height: isCompactHeight ? 36 : 40,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  backgroundColor: MangaColors.accentYellow,
+                  child: Row(
+                    children: [
+                      const Icon(Icons.sync_rounded,
+                          size: 16, color: Colors.black),
+                      const SizedBox(width: 4),
+                      Text(
+                        'SINCRONIZAR CLIENTES',
+                        style: MangaFonts.comic(
+                          fontSize: isCompactHeight ? 14 : 16,
                         ),
                       ),
                     ],
-                  ],
+                  ),
                 ),
               ],
             ),
@@ -250,32 +227,101 @@ class ServerTicketsHistoryView extends StatelessWidget {
                                   ),
                                 ),
                                 const SizedBox(height: 6),
-                                MangaPressButton(
-                                  onTap: () {
-                                    controller.lanService
-                                        .broadcastNewOrder(order);
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        backgroundColor: Colors.black,
-                                        content: Text(
-                                          '📡 Orden #${order.orderNumber} re-enviada al Cliente.',
-                                          style: MangaFonts.sans(
+                                Wrap(
+                                  spacing: 6,
+                                  runSpacing: 4,
+                                  alignment: WrapAlignment.end,
+                                  children: [
+                                    // Compartir PDF
+                                    MangaPressButton(
+                                      onTap: () async {
+                                        try {
+                                          await ReceiptPdfService.shareReceipt(
+                                            order: order,
+                                            storeName: controller.storeName,
+                                          );
+                                        } catch (e) {
+                                          if (context.mounted) {
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              SnackBar(
+                                                backgroundColor:
+                                                    MangaColors.dangerRed,
+                                                content: Text(
+                                                    'Error al compartir PDF: $e'),
+                                              ),
+                                            );
+                                          }
+                                        }
+                                      },
+                                      height: 28,
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8),
+                                      backgroundColor: MangaColors.accentMint,
+                                      tooltip:
+                                          'Generar y compartir nota de venta en PDF',
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(Icons.share_rounded,
+                                              size: 14, color: Colors.black),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            'PDF NOTA',
+                                            style: MangaFonts.comic(
+                                                fontSize: 12,
+                                                color: Colors.black),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    // Re-enviar a Cocina / Cliente
+                                    MangaPressButton(
+                                      onTap: () {
+                                        controller.lanService
+                                            .broadcastNewOrder(order);
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                            backgroundColor: Colors.black,
+                                            content: Text(
+                                              '📡 Orden #${order.orderNumber} re-enviada al Cliente.',
+                                              style: MangaFonts.sans(
+                                                  color: Colors.white),
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                      height: 28,
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8),
+                                      backgroundColor: MangaColors.accentCyan,
+                                      tooltip: 'Re-enviar pedido al Cliente',
+                                      child: Center(
+                                        child: Text(
+                                          'RE-ENVIAR',
+                                          style: MangaFonts.comic(
+                                              fontSize: 12,
                                               color: Colors.white),
                                         ),
                                       ),
-                                    );
-                                  },
-                                  height: 28,
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 8),
-                                  backgroundColor: MangaColors.accentCyan,
-                                  child: Center(
-                                    child: Text(
-                                      'RE-ENVIAR A CLIENTE',
-                                      style: MangaFonts.comic(
-                                          fontSize: 12, color: Colors.white),
                                     ),
-                                  ),
+                                    // Eliminar ticket individual
+                                    MangaPressButton(
+                                      onTap: () => _confirmDeleteSingleTicket(
+                                          context, order),
+                                      height: 28,
+                                      width: 28,
+                                      backgroundColor:
+                                          MangaColors.dangerSoftRed,
+                                      tooltip: 'Eliminar este ticket',
+                                      child: const Icon(
+                                        Icons.delete_forever_rounded,
+                                        size: 16,
+                                        color: MangaColors.dangerRed,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
@@ -288,6 +334,85 @@ class ServerTicketsHistoryView extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _confirmDeleteSingleTicket(
+      BuildContext context, PosOrder order) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          width: 380,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: MangaColors.surfaceWhite,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.black, width: 3.5),
+            boxShadow: MangaShadows.xl,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '¿ELIMINAR TICKET #${order.orderNumber}?',
+                style: MangaFonts.comic(fontSize: 22),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Se eliminará este ticket específico por \$${order.total.toStringAsFixed(2)} del historial. Esta acción no se puede deshacer.',
+                style: MangaFonts.sans(fontSize: 12.5),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  MangaPressButton(
+                    onTap: () => Navigator.of(ctx).pop(false),
+                    height: 36,
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    child: Center(
+                      child: Text('CANCELAR',
+                          style: MangaFonts.comic(fontSize: 15)),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  MangaPressButton(
+                    onTap: () => Navigator.of(ctx).pop(true),
+                    height: 36,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    backgroundColor: MangaColors.dangerSoftRed,
+                    child: Center(
+                      child: Text(
+                        'ELIMINAR TICKET',
+                        style: MangaFonts.comic(
+                            fontSize: 15, color: MangaColors.dangerRed),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (confirm == true) {
+      await controller.deleteSingleOrder(order.id);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: Colors.black,
+            content: Text(
+              '🗑️ Ticket #${order.orderNumber} eliminado.',
+              style: MangaFonts.sans(color: Colors.white),
+            ),
+          ),
+        );
+      }
+    }
   }
 }
 
@@ -566,7 +691,7 @@ class ServerReportsView extends StatelessWidget {
   }
 }
 
-// ==================== SETTINGS, BACKUP IMPORT/EXPORT & LAN VIEW ====================
+// ==================== SETTINGS, BACKUP & DANGER ZONE VIEW ====================
 
 class ServerSettingsView extends StatefulWidget {
   final PosController controller;
@@ -605,7 +730,7 @@ class _ServerSettingsViewState extends State<ServerSettingsView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. IMPORTAR / EXPORTAR PRODUCTOS (EXCLUSIVAMENTE EN AJUSTES)
+          // 1. RESPALDO COMPLETO DEL SISTEMA (PRODUCTOS, FOTOS Y TICKETS)
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(18),
@@ -637,15 +762,15 @@ class _ServerSettingsViewState extends State<ServerSettingsView> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        'IMPORTAR / EXPORTAR CATÁLOGO DE PRODUCTOS (CON IMÁGENES LOCALES)',
-                        style: MangaFonts.comic(fontSize: 23),
+                        'RESPALDO COMPLETO DEL SISTEMA (PRODUCTOS, IMÁGENES Y TICKETS)',
+                        style: MangaFonts.comic(fontSize: 22),
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Guarda una copia de seguridad (.json) de todos tus Dogos, Papas y Combos junto con sus fotografías locales por si tu dispositivo se daña o cambia.',
+                  'Exporta o importa un archivo .json completo que incluye todos los Dogos, Papas, Combos, fotografías locales y el historial de ventas por si tu dispositivo se pierde o daña.',
                   style: MangaFonts.sans(fontSize: 12, color: Colors.black87),
                 ),
                 const SizedBox(height: 14),
@@ -655,7 +780,7 @@ class _ServerSettingsViewState extends State<ServerSettingsView> {
                   children: [
                     MangaPressButton(
                       onTap: () => _handleExportBackup(context),
-                      height: 46,
+                      height: 44,
                       padding: const EdgeInsets.symmetric(horizontal: 18),
                       backgroundColor: MangaColors.accentYellow,
                       shadow: MangaShadows.md,
@@ -666,16 +791,16 @@ class _ServerSettingsViewState extends State<ServerSettingsView> {
                               size: 20, color: Colors.black),
                           const SizedBox(width: 8),
                           Text(
-                            '📤 EXPORTAR PRODUCTOS (.JSON)',
+                            '📤 EXPORTAR RESPALDO COMPLETO (.JSON)',
                             style: MangaFonts.comic(
-                                fontSize: 18, color: Colors.black),
+                                fontSize: 17, color: Colors.black),
                           ),
                         ],
                       ),
                     ),
                     MangaPressButton(
                       onTap: () => _showImportOptionsDialog(context),
-                      height: 46,
+                      height: 44,
                       padding: const EdgeInsets.symmetric(horizontal: 18),
                       backgroundColor: MangaColors.accentCyan,
                       hoverColor: MangaColors.accentCyanDark,
@@ -687,9 +812,9 @@ class _ServerSettingsViewState extends State<ServerSettingsView> {
                               size: 20, color: Colors.white),
                           const SizedBox(width: 8),
                           Text(
-                            '📥 IMPORTAR PRODUCTOS (.JSON)',
+                            '📥 IMPORTAR RESPALDO COMPLETO (.JSON)',
                             style: MangaFonts.comic(
-                                fontSize: 18, color: Colors.white),
+                                fontSize: 17, color: Colors.white),
                           ),
                         ],
                       ),
@@ -850,6 +975,120 @@ class _ServerSettingsViewState extends State<ServerSettingsView> {
               ],
             ),
           ),
+          const SizedBox(height: 14),
+
+          // 3. ZONA DE RESTABLECIMIENTO DEL SISTEMA (EXCLUSIVAMENTE EN AJUSTES)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF5F5),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: MangaColors.dangerRed, width: 3.5),
+              boxShadow: MangaShadows.md,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: MangaColors.dangerRed,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        'PELIGRO',
+                        style:
+                            MangaFonts.comic(fontSize: 18, color: Colors.white),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      'ZONA DE RESTABLECIMIENTO Y REINICIO DEL SISTEMA',
+                      style: MangaFonts.comic(
+                        fontSize: 22,
+                        color: MangaColors.dangerRed,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Opciones para restablecer o reiniciar datos de la aplicación. Usa estas opciones con precaución.',
+                  style: MangaFonts.sans(fontSize: 12, color: Colors.black87),
+                ),
+                const SizedBox(height: 14),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 10,
+                  children: [
+                    // A. Reiniciar Folio de Órdenes a #1
+                    MangaPressButton(
+                      onTap: () => _showResetOrderNumberDialog(context),
+                      height: 44,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      backgroundColor: MangaColors.accentYellow,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.restart_alt_rounded,
+                              size: 18, color: Colors.black),
+                          const SizedBox(width: 6),
+                          Text(
+                            'REINICIAR ÓRDENES A LA #1',
+                            style: MangaFonts.comic(
+                                fontSize: 16, color: Colors.black),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // B. Borrar Todos los Tickets con Doble Advertencia
+                    MangaPressButton(
+                      onTap: () => _showDoubleWarningResetOrdersDialog(context),
+                      height: 44,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      backgroundColor: MangaColors.dangerSoftRed,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.delete_forever_rounded,
+                              size: 18, color: MangaColors.dangerRed),
+                          const SizedBox(width: 6),
+                          Text(
+                            'BORRAR TODOS LOS TICKETS (DOBLE ADVERTENCIA)',
+                            style: MangaFonts.comic(
+                                fontSize: 16, color: MangaColors.dangerRed),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // C. Opciones de Productos (Desde cero o restaurar iniciales)
+                    MangaPressButton(
+                      onTap: () => _showResetProductsOptionsDialog(context),
+                      height: 44,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      backgroundColor: Colors.white,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.inventory_rounded,
+                              size: 18, color: Colors.black),
+                          const SizedBox(width: 6),
+                          Text(
+                            'RESTABLECER CATÁLOGO PRODUCTOS',
+                            style: MangaFonts.comic(fontSize: 16),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -863,7 +1102,7 @@ class _ServerSettingsViewState extends State<ServerSettingsView> {
         SnackBar(
           backgroundColor: Colors.black,
           content: Text(
-            '✅ Catálogo exportado con éxito (incluye imágenes locales): $savedPath',
+            '✅ Respaldo completo exportado con éxito (incluye productos, fotos y tickets): $savedPath',
             style: MangaFonts.sans(color: Colors.white, fontSize: 12.5),
           ),
         ),
@@ -878,7 +1117,7 @@ class _ServerSettingsViewState extends State<ServerSettingsView> {
         return Dialog(
           backgroundColor: Colors.transparent,
           child: Container(
-            width: 440,
+            width: 460,
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: MangaColors.surfaceWhite,
@@ -891,12 +1130,12 @@ class _ServerSettingsViewState extends State<ServerSettingsView> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '📥 IMPORTAR RESPALDO DE PRODUCTOS',
+                  '📥 IMPORTAR RESPALDO COMPLETO',
                   style: MangaFonts.comic(fontSize: 25),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Selecciona tu archivo .json de respaldo. Se restaurarán los Dogos, Papas y Combos junto con sus imágenes locales.',
+                  'Selecciona tu archivo .json de respaldo. Se restaurarán los Dogos, Papas, Combos, fotografías locales y el historial de tickets guardados.',
                   style: MangaFonts.sans(fontSize: 12.5, color: Colors.black87),
                 ),
                 const SizedBox(height: 16),
@@ -924,7 +1163,7 @@ class _ServerSettingsViewState extends State<ServerSettingsView> {
                   padding: const EdgeInsets.symmetric(horizontal: 14),
                   child: Center(
                     child: Text(
-                      'COMBINAR CON PRODUCTOS ACTUALES',
+                      'COMBINAR CON DATOS ACTUALES',
                       style: MangaFonts.comic(fontSize: 18),
                     ),
                   ),
@@ -954,7 +1193,7 @@ class _ServerSettingsViewState extends State<ServerSettingsView> {
                   padding: const EdgeInsets.symmetric(horizontal: 14),
                   child: Center(
                     child: Text(
-                      'REEMPLAZAR TODO EL CATÁLOGO ACTUAL',
+                      'REEMPLAZAR TODOS LOS DATOS ACTUALES',
                       style:
                           MangaFonts.comic(fontSize: 18, color: Colors.white),
                     ),
@@ -978,6 +1217,338 @@ class _ServerSettingsViewState extends State<ServerSettingsView> {
           ),
         );
       },
+    );
+  }
+
+  // Double Warning Dialog for Clearing All Tickets
+  Future<void> _showDoubleWarningResetOrdersDialog(
+      BuildContext context) async {
+    // Warning 1
+    final step1Confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          width: 440,
+          padding: const EdgeInsets.all(22),
+          decoration: BoxDecoration(
+            color: MangaColors.surfaceWhite,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Colors.black, width: 3.5),
+            boxShadow: MangaShadows.xl,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: MangaColors.accentYellow,
+                  borderRadius: BorderRadius.circular(5),
+                ),
+                child: Text(
+                  'ADVERTENCIA 1 DE 2',
+                  style: MangaFonts.comic(fontSize: 16),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                '¿DESEAS BORRAR TODOS LOS TICKETS Y VENTAS?',
+                style: MangaFonts.comic(fontSize: 24),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Esta acción eliminará el historial de todas las órdenes registradas hasta el momento y los reportes de ventas se reiniciarán a cero.',
+                style: MangaFonts.sans(fontSize: 13),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  MangaPressButton(
+                    onTap: () => Navigator.of(ctx).pop(false),
+                    height: 38,
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    child: Center(
+                      child: Text('CANCELAR',
+                          style: MangaFonts.comic(fontSize: 15)),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  MangaPressButton(
+                    onTap: () => Navigator.of(ctx).pop(true),
+                    height: 38,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    backgroundColor: MangaColors.primaryOrange,
+                    child: Center(
+                      child: Text(
+                        'CONTINUAR AL PASO FINAL ➔',
+                        style: MangaFonts.comic(
+                            fontSize: 16, color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (step1Confirmed != true || !context.mounted) return;
+
+    // Warning 2 (Definitive confirmation)
+    final step2Confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          width: 440,
+          padding: const EdgeInsets.all(22),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFF0F0),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: MangaColors.dangerRed, width: 4),
+            boxShadow: MangaShadows.xl,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: MangaColors.dangerRed,
+                  borderRadius: BorderRadius.circular(5),
+                ),
+                child: Text(
+                  '🛑 ADVERTENCIA DEFINITIVA (PASO 2 DE 2)',
+                  style: MangaFonts.comic(fontSize: 16, color: Colors.white),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                '¡ESTA ACCIÓN NO SE PUEDE DESHACER!',
+                style: MangaFonts.comic(
+                  fontSize: 24,
+                  color: MangaColors.dangerRed,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Se borrarán de forma definitiva todos los tickets (${widget.controller.orders.length} órdenes) y se perderá el acumulado de ventas. ¿Confirmas borrar definitivamente?',
+                style: MangaFonts.sans(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 18),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  MangaPressButton(
+                    onTap: () => Navigator.of(ctx).pop(false),
+                    height: 40,
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    child: Center(
+                      child: Text('NO, CANCELAR',
+                          style: MangaFonts.comic(fontSize: 16)),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  MangaPressButton(
+                    onTap: () => Navigator.of(ctx).pop(true),
+                    height: 40,
+                    padding: const EdgeInsets.symmetric(horizontal: 18),
+                    backgroundColor: MangaColors.dangerRed,
+                    child: Center(
+                      child: Text(
+                        'SÍ, BORRAR DEFINITIVAMENTE',
+                        style: MangaFonts.comic(
+                            fontSize: 16, color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (step2Confirmed == true) {
+      await widget.controller.resetAllOrdersAndSales();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: Colors.black,
+            content: Text(
+              '🗑️ Historial de tickets y ventas borrado por completo.',
+              style: MangaFonts.sans(color: Colors.white),
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _showResetOrderNumberDialog(BuildContext context) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          width: 380,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: MangaColors.surfaceWhite,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.black, width: 3.5),
+            boxShadow: MangaShadows.xl,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'REINICIAR ÓRDENES A LA #1',
+                style: MangaFonts.comic(fontSize: 24),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'El próximo pedido que se cobre tendrá el folio #1 y aumentará correlativamente (#1, #2, #3...).',
+                style: MangaFonts.sans(fontSize: 13),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  MangaPressButton(
+                    onTap: () => Navigator.of(ctx).pop(false),
+                    height: 38,
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    child: Center(
+                      child: Text('CANCELAR',
+                          style: MangaFonts.comic(fontSize: 15)),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  MangaPressButton(
+                    onTap: () => Navigator.of(ctx).pop(true),
+                    height: 38,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    backgroundColor: MangaColors.primaryOrange,
+                    child: Center(
+                      child: Text(
+                        'REINICIAR A #1',
+                        style: MangaFonts.comic(
+                            fontSize: 16, color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (confirm == true) {
+      await widget.controller.resetOrderNumber(1);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: Colors.black,
+            content: Text(
+              '✅ Folio de órdenes reiniciado a la orden #1.',
+              style: MangaFonts.sans(color: Colors.white),
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _showResetProductsOptionsDialog(BuildContext context) async {
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          width: 420,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: MangaColors.surfaceWhite,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Colors.black, width: 3.5),
+            boxShadow: MangaShadows.xl,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('RESTABLECER CATÁLOGO PRODUCTOS',
+                  style: MangaFonts.comic(fontSize: 24)),
+              const SizedBox(height: 6),
+              Text(
+                '¿Deseas vaciar todos los productos para crear tu propio menú desde cero, o restaurar los Dogos de demostración?',
+                style: MangaFonts.sans(fontSize: 12.5),
+              ),
+              const SizedBox(height: 14),
+              MangaPressButton(
+                onTap: () async {
+                  await widget.controller.clearAllProducts();
+                  if (ctx.mounted) Navigator.of(ctx).pop();
+                },
+                height: 44,
+                width: double.infinity,
+                backgroundColor: MangaColors.dangerSoftRed,
+                child: Center(
+                  child: Text(
+                    '🗑️ VACIAR TODO (EMPEZAR DESDE CERO)',
+                    style: MangaFonts.comic(
+                        fontSize: 17, color: MangaColors.dangerRed),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              MangaPressButton(
+                onTap: () async {
+                  await widget.controller.restoreDefaultCatalog();
+                  if (ctx.mounted) Navigator.of(ctx).pop();
+                },
+                height: 44,
+                width: double.infinity,
+                backgroundColor: MangaColors.accentYellow,
+                child: Center(
+                  child: Text(
+                    '🌭 RESTAURAR DOGOS DEMO INICIALES',
+                    style: MangaFonts.comic(fontSize: 17, color: Colors.black),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerRight,
+                child: MangaPressButton(
+                  onTap: () => Navigator.of(ctx).pop(),
+                  height: 36,
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  child: Center(
+                    child:
+                        Text('CERRAR', style: MangaFonts.comic(fontSize: 15)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

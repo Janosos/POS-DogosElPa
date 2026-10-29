@@ -109,58 +109,31 @@ class _ProductManagementViewState extends State<ProductManagementView> {
                   ),
                 ),
                 const SizedBox(width: 10),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    MangaPressButton(
-                      onTap: () => _confirmClearOrResetCatalog(context),
-                      height: isCompactHeight ? 36 : 42,
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      backgroundColor: MangaColors.dangerSoftRed,
-                      tooltip: 'Vaciar catálogo para empezar desde cero o restaurar demo',
-                      child: Row(
-                        children: [
-                          const Icon(Icons.cleaning_services_rounded,
-                              size: 16, color: MangaColors.dangerRed),
-                          const SizedBox(width: 4),
-                          Text(
-                            'DESDE CERO',
-                            style: MangaFonts.comic(
-                              fontSize: isCompactHeight ? 14 : 16,
-                              color: MangaColors.dangerRed,
-                            ),
-                          ),
-                        ],
+                MangaPressButton(
+                  onTap: () => showProductEditorDialog(
+                    context,
+                    controller: widget.controller,
+                  ),
+                  height: isCompactHeight ? 36 : 42,
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  backgroundColor: MangaColors.primaryOrange,
+                  hoverColor: MangaColors.primaryOrangeHover,
+                  shadow: MangaShadows.md,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.add_circle_outline_rounded,
+                          size: 18, color: Colors.white),
+                      const SizedBox(width: 6),
+                      Text(
+                        '+ NUEVO PRODUCTO',
+                        style: MangaFonts.comic(
+                          fontSize: isCompactHeight ? 15 : 18,
+                          color: Colors.white,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    MangaPressButton(
-                      onTap: () => showProductEditorDialog(
-                        context,
-                        controller: widget.controller,
-                      ),
-                      height: isCompactHeight ? 36 : 42,
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
-                      backgroundColor: MangaColors.primaryOrange,
-                      hoverColor: MangaColors.primaryOrangeHover,
-                      shadow: MangaShadows.md,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.add_circle_outline_rounded,
-                              size: 18, color: Colors.white),
-                          const SizedBox(width: 6),
-                          Text(
-                            '+ NUEVO PRODUCTO',
-                            style: MangaFonts.comic(
-                              fontSize: isCompactHeight ? 15 : 18,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -539,84 +512,6 @@ class _ProductManagementViewState extends State<ProductManagementView> {
     if (confirm == true) {
       await widget.controller.deleteProduct(product.id);
     }
-  }
-
-  Future<void> _confirmClearOrResetCatalog(BuildContext context) async {
-    await showDialog<void>(
-      context: context,
-      builder: (ctx) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: Container(
-          width: 420,
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: MangaColors.surfaceWhite,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Colors.black, width: 3.5),
-            boxShadow: MangaShadows.xl,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('OPCIONES DE CATÁLOGO',
-                  style: MangaFonts.comic(fontSize: 24)),
-              const SizedBox(height: 6),
-              Text(
-                '¿Deseas vaciar todos los productos para crear tu propio menú desde cero, o restaurar los Dogos de demostración?',
-                style: MangaFonts.sans(fontSize: 12.5),
-              ),
-              const SizedBox(height: 14),
-              MangaPressButton(
-                onTap: () async {
-                  await widget.controller.clearAllProducts();
-                  if (ctx.mounted) Navigator.of(ctx).pop();
-                },
-                height: 44,
-                width: double.infinity,
-                backgroundColor: MangaColors.dangerSoftRed,
-                child: Center(
-                  child: Text(
-                    '🗑️ VACIAR TODO (EMPEZAR DESDE CERO)',
-                    style: MangaFonts.comic(
-                        fontSize: 17, color: MangaColors.dangerRed),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              MangaPressButton(
-                onTap: () async {
-                  await widget.controller.restoreDefaultCatalog();
-                  if (ctx.mounted) Navigator.of(ctx).pop();
-                },
-                height: 44,
-                width: double.infinity,
-                backgroundColor: MangaColors.accentYellow,
-                child: Center(
-                  child: Text(
-                    '🌭 RESTAURAR DOGOS DEMO INICIALES',
-                    style: MangaFonts.comic(fontSize: 17, color: Colors.black),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Align(
-                alignment: Alignment.centerRight,
-                child: MangaPressButton(
-                  onTap: () => Navigator.of(ctx).pop(),
-                  height: 36,
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                  child: Center(
-                    child:
-                        Text('CERRAR', style: MangaFonts.comic(fontSize: 15)),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 }
 

@@ -35,7 +35,7 @@ class PosController extends ChangeNotifier {
   String _storeName = 'DOGOS EL PA';
   String _cashierName = 'CAJA PRINCIPAL';
   String _shiftLabel = 'TURNO ACTIVO';
-  int _nextOrderNumber = 1042;
+  int _nextOrderNumber = 1;
   int _configuredPort = LanSyncService.defaultHttpPort;
   String _lastServerIp = '127.0.0.1';
   List<String> _localIps = ['127.0.0.1'];
@@ -178,7 +178,7 @@ class PosController extends ChangeNotifier {
 
     _storeName = prefs.getString(_prefsStoreNameKey) ?? 'DOGOS EL PA';
     _cashierName = prefs.getString(_prefsCashierNameKey) ?? 'CAJA PRINCIPAL';
-    _nextOrderNumber = prefs.getInt(_prefsNextOrderNumKey) ?? 1042;
+    _nextOrderNumber = prefs.getInt(_prefsNextOrderNumKey) ?? 1;
     _configuredPort =
         prefs.getInt(_prefsServerPortKey) ?? LanSyncService.defaultHttpPort;
     _lastServerIp = prefs.getString(_prefsLastServerIpKey) ??
@@ -472,6 +472,16 @@ class PosController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void addCashTendered(double amount) {
+    _selectedCashTendered = (_selectedCashTendered ?? 0.0) + amount;
+    notifyListeners();
+  }
+
+  void clearCashTendered() {
+    _selectedCashTendered = null;
+    notifyListeners();
+  }
+
   void saveCurrentTicketAsDraft() {
     if (_ticketItems.isEmpty) return;
     final draft = PosOrder(
@@ -750,15 +760,19 @@ class PosController extends ChangeNotifier {
         'version': '2.4',
         'exportedAt': DateTime.now().toIso8601String(),
         'storeName': _storeName,
+        'cashierName': _cashierName,
+        'shiftLabel': _shiftLabel,
+        'nextOrderNumber': _nextOrderNumber,
         'categories': _categories.map((c) => c.toJson()).toList(),
         'products': exportedProducts,
+        'orders': _orders.map((o) => o.toJson(includeBase64: false)).toList(),
       };
 
       final jsonString =
           const JsonEncoder.withIndent('  ').convert(backupPayload);
 
       final defaultFileName =
-          'respaldo_dogos_el_pa_${DateTime.now().year}_${DateTime.now().month.toString().padLeft(2, '0')}_${DateTime.now().day.toString().padLeft(2, '0')}.json';
+          'respaldo_completo_dogos_el_pa_${DateTime.now().year}_${DateTime.now().month.toString().padLeft(2, '0')}_${DateTime.now().day.toString().padLeft(2, '0')}.json';
 
       final jsonBytes = Uint8List.fromList(utf8.encode(jsonString));
       final Uri? outputUri = await FilePicker.saveFile(
@@ -875,13 +889,44 @@ class PosController extends ChangeNotifier {
         }
       }
 
+      // Restore orders / tickets if present in backup
+      final rawOrders = decoded['orders'] as List?;
+      int importedOrdersCount = 0;
+      if (rawOrders != null && rawOrders.isNotEmpty) {
+        final parsedOrders = rawOrders
+            .map((e) => PosOrder.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList();
+        importedOrdersCount = parsedOrders.length;
+        if (replaceExisting) {
+          _orders = parsedOrders;
+        } else {
+          for (final ord in parsedOrders) {
+            if (!_orders.any((o) => o.id == ord.id)) {
+              _orders.add(ord);
+            }
+          }
+        }
+        _orders.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        await _saveOrdersToStorage();
+        lanService.broadcastFullSync(_orders);
+      }
+
+      if (decoded['nextOrderNumber'] is num) {
+        final nextNum = (decoded['nextOrderNumber'] as num).toInt();
+        if (nextNum > _nextOrderNumber) {
+          _nextOrderNumber = nextNum;
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setInt(_prefsNextOrderNumKey, _nextOrderNumber);
+        }
+      }
+
       await _saveCatalogToStorage();
       notifyListeners();
       return (
         success: true,
         count: importedProducts.length,
         message:
-            '¡Se importaron ${importedProducts.length} productos exitosamente con sus imágenes!',
+            '¡Respaldo importado con éxito! Se cargaron ${importedProducts.length} productos y $importedOrdersCount tickets.',
       );
     } catch (e) {
       debugPrint('Error importing catalog: $e');
@@ -926,6 +971,27 @@ class PosController extends ChangeNotifier {
         );
       }
     }
+    notifyListeners();
+  }
+
+  Future<void> deleteSingleOrder(String orderId) async {
+    _orders.removeWhere((o) => o.id == orderId);
+    await _saveOrdersToStorage();
+    lanService.broadcastFullSync(_orders);
+    notifyListeners();
+  }
+
+  Future<void> resetAllOrdersAndSales() async {
+    _orders.clear();
+    await _saveOrdersToStorage();
+    lanService.broadcastFullSync(_orders);
+    notifyListeners();
+  }
+
+  Future<void> resetOrderNumber([int nextNum = 1]) async {
+    _nextOrderNumber = nextNum;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_prefsNextOrderNumKey, _nextOrderNumber);
     notifyListeners();
   }
 

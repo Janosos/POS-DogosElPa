@@ -81,10 +81,10 @@ class _ClientKitchenScreenState extends State<ClientKitchenScreen> {
         child: SafeArea(
           child: Column(
             children: [
-              // ==================== MOBILE PORTRAIT TOP HEADER ====================
+              // ==================== MOBILE PORTRAIT TOP HEADER (OPTIMIZED FOR NARROW ANDROID SCREENS) ====================
               Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 decoration: const BoxDecoration(
                   color: MangaColors.surfaceWhite,
                   border: Border(
@@ -94,127 +94,137 @@ class _ClientKitchenScreenState extends State<ClientKitchenScreen> {
                 ),
                 child: Column(
                   children: [
+                    // Row 1: Brand Title + Mode Badge + Action Buttons
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        // Left: Only "Dogos El Pa" + Cliente tag
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'DOGOS EL PA',
-                              style: MangaFonts.comic(
-                                fontSize: 28,
-                                color: Colors.black,
-                                shadows: const [
-                                  Shadow(
-                                    color: MangaColors.primaryOrange,
-                                    offset: Offset(1.5, 1.5),
+                        Flexible(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  'DOGOS EL PA',
+                                  overflow: TextOverflow.ellipsis,
+                                  style: MangaFonts.comic(
+                                    fontSize: 24,
+                                    color: Colors.black,
+                                    shadows: const [
+                                      Shadow(
+                                        color: MangaColors.primaryOrange,
+                                        offset: Offset(1.5, 1.5),
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 1),
-                              decoration: BoxDecoration(
-                                color: MangaColors.accentYellow,
-                                borderRadius: BorderRadius.circular(4),
-                                border:
-                                    Border.all(color: Colors.black, width: 1.2),
-                              ),
-                              child: Text(
-                                'MODO CLIENTE · ÓRDENES EN VIVO',
-                                style: MangaFonts.sans(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w900,
                                 ),
                               ),
-                            ),
-                          ],
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 1.5),
+                                decoration: BoxDecoration(
+                                  color: MangaColors.accentYellow,
+                                  borderRadius: BorderRadius.circular(4),
+                                  border:
+                                      Border.all(color: Colors.black, width: 1.2),
+                                ),
+                                child: Text(
+                                  'CLIENTE',
+                                  style: MangaFonts.sans(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-
-                        // Right: Connection Pill + Refresh + Mode Switch
+                        const SizedBox(width: 6),
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             MangaPressButton(
-                              onTap: () => _showConnectServerDialog(context),
-                              height: 38,
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 10),
-                              backgroundColor: isConnected
-                                  ? MangaColors.accentMint
-                                  : MangaColors.dangerSoftRed,
-                              borderRadius: 10,
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    isConnected
-                                        ? Icons.wifi_rounded
-                                        : Icons.wifi_off_rounded,
-                                    size: 16,
-                                    color: isConnected
-                                        ? MangaColors.successGreen
-                                        : MangaColors.dangerRed,
-                                  ),
-                                  const SizedBox(width: 5),
-                                  Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        isConnected
-                                            ? 'CONECTADO'
-                                            : (widget.controller.isScanningLan
-                                                ? 'BUSCANDO...'
-                                                : 'CONECTAR IP'),
-                                        style: MangaFonts.sans(
-                                          fontSize: 9.5,
-                                          fontWeight: FontWeight.w900,
-                                        ),
-                                      ),
-                                      Text(
-                                        serverIp,
-                                        style: MangaFonts.sans(
-                                          fontSize: 8.5,
-                                          color: Colors.black87,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            MangaPressButton(
                               onTap: () => widget.controller.lanService
                                   .requestSyncFromServer(),
-                              width: 38,
-                              height: 38,
-                              borderRadius: 10,
+                              width: 34,
+                              height: 34,
+                              borderRadius: 8,
                               backgroundColor: Colors.white,
                               tooltip: 'Actualizar órdenes',
                               child: const Icon(Icons.refresh_rounded,
-                                  size: 19, color: Colors.black),
+                                  size: 18, color: Colors.black),
                             ),
                             const SizedBox(width: 6),
                             MangaPressButton(
                               onTap: () =>
                                   widget.controller.returnToModeSelection(),
-                              width: 38,
-                              height: 38,
-                              borderRadius: 10,
+                              width: 34,
+                              height: 34,
+                              borderRadius: 8,
                               backgroundColor: MangaColors.primaryOrange,
                               tooltip: 'Cambiar Modo',
                               child: const Icon(Icons.swap_horiz_rounded,
-                                  size: 19, color: Colors.white),
+                                  size: 18, color: Colors.white),
                             ),
                           ],
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 6),
+
+                    // Row 2: Full-width LAN Connection Status Bar (Tap to reconnect/edit IP)
+                    MangaPressButton(
+                      onTap: () => _showConnectServerDialog(context),
+                      height: 32,
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      backgroundColor: isConnected
+                          ? MangaColors.accentMint
+                          : MangaColors.dangerSoftRed,
+                      borderRadius: 8,
+                      child: Row(
+                        children: [
+                          Icon(
+                            isConnected
+                                ? Icons.wifi_rounded
+                                : Icons.wifi_off_rounded,
+                            size: 16,
+                            color: isConnected
+                                ? MangaColors.successGreen
+                                : MangaColors.dangerRed,
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  isConnected
+                                      ? 'CONECTADO AL SERVIDOR'
+                                      : (widget.controller.isScanningLan
+                                          ? 'BUSCANDO SERVIDOR EN LAN...'
+                                          : 'DESCONECTADO · TOCAR PARA CONECTAR'),
+                                  style: MangaFonts.sans(
+                                    fontSize: 9.5,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                                Flexible(
+                                  child: Text(
+                                    serverIp,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: MangaFonts.sans(
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),

@@ -174,7 +174,7 @@ class _ServerPosScreenState extends State<ServerPosScreen> {
 
           const SizedBox(width: 12),
 
-          // Quick Header Buttons (Descuentos, Cajón - without Importar/Exportar)
+          // Quick Header Buttons (Descuentos - without Cajón, without Importar/Exportar)
           if (showQuickHeaderButtons) ...[
             MangaPressButton(
               onTap: () => _showDiscountDialog(context),
@@ -189,36 +189,6 @@ class _ServerPosScreenState extends State<ServerPosScreen> {
                   const SizedBox(width: 4),
                   Text(
                     'DESCUENTOS',
-                    style: MangaFonts.sans(
-                        fontSize: 11, fontWeight: FontWeight.w900),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            MangaPressButton(
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    backgroundColor: Colors.black,
-                    content: Text(
-                      '🔓 ¡Cajón de dinero abierto!',
-                      style: MangaFonts.sans(color: Colors.white),
-                    ),
-                  ),
-                );
-              },
-              height: isCompactHeight ? 36 : 40,
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              backgroundColor: MangaColors.accentMint,
-              hoverColor: MangaColors.accentMintDark,
-              child: Row(
-                children: [
-                  const Icon(Icons.lock_open_rounded,
-                      size: 16, color: Colors.black),
-                  const SizedBox(width: 4),
-                  Text(
-                    'CAJÓN',
                     style: MangaFonts.sans(
                         fontSize: 11, fontWeight: FontWeight.w900),
                   ),
@@ -1123,11 +1093,11 @@ class _ServerPosScreenState extends State<ServerPosScreen> {
                 ],
                 SizedBox(height: isCompactHeight ? 4 : 6),
 
-                // Giant Total Box
+                // Giant Total Box with Real-time Cash / Morralla calculation
                 Container(
                   padding: EdgeInsets.symmetric(
                     horizontal: 10,
-                    vertical: isCompactHeight ? 4 : 7,
+                    vertical: isCompactHeight ? 4 : 6,
                   ),
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -1141,6 +1111,7 @@ class _ServerPosScreenState extends State<ServerPosScreen> {
                       Flexible(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
                               'TOTAL A PAGAR',
@@ -1150,24 +1121,77 @@ class _ServerPosScreenState extends State<ServerPosScreen> {
                                 color: const Color(0xFF525252),
                               ),
                             ),
-                            if (selectedCash != null &&
-                                selectedCash >= grandTotal &&
-                                grandTotal > 0)
-                              Text(
-                                'CAMBIO: \$${(selectedCash - grandTotal).toStringAsFixed(2)}',
-                                style: MangaFonts.sans(
-                                  fontSize: 9.5,
-                                  fontWeight: FontWeight.w900,
-                                  color: MangaColors.successGreen,
-                                ),
+                            if (selectedCash != null && selectedCash > 0) ...[
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'RECIBIDO: ',
+                                    style: MangaFonts.sans(
+                                      fontSize: 9.5,
+                                      fontWeight: FontWeight.w800,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                  Text(
+                                    '\$${selectedCash.toStringAsFixed(2)}',
+                                    style: MangaFonts.comic(
+                                      fontSize: isCompactHeight ? 13 : 14.5,
+                                      color: MangaColors.primaryOrange,
+                                    ),
+                                  ),
+                                ],
                               ),
+                              if (selectedCash >= grandTotal && grandTotal > 0)
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      'CAMBIO: ',
+                                      style: MangaFonts.sans(
+                                        fontSize: 9.5,
+                                        fontWeight: FontWeight.w900,
+                                        color: MangaColors.successGreen,
+                                      ),
+                                    ),
+                                    Text(
+                                      '\$${(selectedCash - grandTotal).toStringAsFixed(2)}',
+                                      style: MangaFonts.comic(
+                                        fontSize: isCompactHeight ? 13.5 : 15,
+                                        color: MangaColors.successGreen,
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              else if (grandTotal > selectedCash)
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      'FALTA: ',
+                                      style: MangaFonts.sans(
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.w900,
+                                        color: MangaColors.dangerRed,
+                                      ),
+                                    ),
+                                    Text(
+                                      '\$${(grandTotal - selectedCash).toStringAsFixed(2)}',
+                                      style: MangaFonts.comic(
+                                        fontSize: isCompactHeight ? 12.5 : 14,
+                                        color: MangaColors.dangerRed,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                            ],
                           ],
                         ),
                       ),
                       Text(
                         '\$${grandTotal.toStringAsFixed(2)}',
                         style: MangaFonts.comic(
-                          fontSize: isCompactHeight ? 28 : 34,
+                          fontSize: isCompactHeight ? 26 : 32,
                           color: Colors.black,
                           height: 1.0,
                         ),
@@ -1175,43 +1199,52 @@ class _ServerPosScreenState extends State<ServerPosScreen> {
                     ],
                   ),
                 ),
-                SizedBox(height: isCompactHeight ? 5 : 7),
+                SizedBox(height: isCompactHeight ? 4 : 6),
 
-                // Quick Cash Bills Row ($50, $100, $200, EXACTO)
-                Row(
+                // Cash Denominations (1, 2, 5, 10, 20, 50, 100, 200, 500, 1000 - Cumulative/Summable for Morralla)
+                Column(
                   children: [
-                    _buildQuickCashBtn('\$50', 50, isCompactHeight),
-                    const SizedBox(width: 5),
-                    _buildQuickCashBtn('\$100', 100, isCompactHeight),
-                    const SizedBox(width: 5),
-                    _buildQuickCashBtn('\$200', 200, isCompactHeight),
-                    const SizedBox(width: 5),
-                    Expanded(
-                      child: MangaPressButton(
-                        onTap: () =>
-                            widget.controller.selectQuickCash(grandTotal),
-                        height: isCompactHeight ? 30 : 34,
-                        backgroundColor: MangaColors.accentCyan,
-                        hoverColor: MangaColors.accentCyanDark,
-                        borderRadius: 7,
-                        child: Center(
-                          child: Text(
-                            'EXACTO',
-                            style: MangaFonts.comic(
-                                fontSize: isCompactHeight ? 14 : 16,
-                                color: Colors.white),
-                          ),
-                        ),
-                      ),
+                    // Row 1: Monedas / feria menor ($1, $2, $5, $10, $20, EXACTO)
+                    Row(
+                      children: [
+                        _buildCashAddBtn('\$1', 1, isCompactHeight),
+                        const SizedBox(width: 4),
+                        _buildCashAddBtn('\$2', 2, isCompactHeight),
+                        const SizedBox(width: 4),
+                        _buildCashAddBtn('\$5', 5, isCompactHeight),
+                        const SizedBox(width: 4),
+                        _buildCashAddBtn('\$10', 10, isCompactHeight),
+                        const SizedBox(width: 4),
+                        _buildCashAddBtn('\$20', 20, isCompactHeight),
+                        const SizedBox(width: 4),
+                        _buildExactoBtn(grandTotal, isCompactHeight),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    // Row 2: Billetes ($50, $100, $200, $500, $1000, BORRAR)
+                    Row(
+                      children: [
+                        _buildCashAddBtn('\$50', 50, isCompactHeight),
+                        const SizedBox(width: 4),
+                        _buildCashAddBtn('\$100', 100, isCompactHeight),
+                        const SizedBox(width: 4),
+                        _buildCashAddBtn('\$200', 200, isCompactHeight),
+                        const SizedBox(width: 4),
+                        _buildCashAddBtn('\$500', 500, isCompactHeight),
+                        const SizedBox(width: 4),
+                        _buildCashAddBtn('\$1000', 1000, isCompactHeight),
+                        const SizedBox(width: 4),
+                        _buildClearCashBtn(isCompactHeight),
+                      ],
                     ),
                   ],
                 ),
-                SizedBox(height: isCompactHeight ? 5 : 7),
+                SizedBox(height: isCompactHeight ? 4 : 6),
 
-                // HERO BUTTON: ¡COBRAR!
+                // HERO BUTTON: ¡COBRAR! (Without lightning icon)
                 MangaPressButton(
                   onTap: () => _showCheckoutModal(context),
-                  height: isCompactHeight ? 44 : 54,
+                  height: isCompactHeight ? 42 : 50,
                   width: double.infinity,
                   backgroundColor: MangaColors.primaryOrange,
                   hoverColor: MangaColors.primaryOrangeHover,
@@ -1233,33 +1266,23 @@ class _ServerPosScreenState extends State<ServerPosScreen> {
                         child: Text(
                           '¡COBRAR!',
                           style: MangaFonts.comic(
-                            fontSize: isCompactHeight ? 21 : 25,
+                            fontSize: isCompactHeight ? 20 : 24,
                             color: Colors.black,
                           ),
                         ),
                       ),
-                      Row(
-                        children: [
-                          Text(
-                            '\$${grandTotal.toStringAsFixed(2)}',
-                            style: MangaFonts.comic(
-                              fontSize: isCompactHeight ? 24 : 30,
-                              color: Colors.white,
-                              shadows: const [
-                                Shadow(
-                                  color: Colors.black,
-                                  offset: Offset(1.5, 1.5),
-                                ),
-                              ],
+                      Text(
+                        '\$${grandTotal.toStringAsFixed(2)}',
+                        style: MangaFonts.comic(
+                          fontSize: isCompactHeight ? 24 : 30,
+                          color: Colors.white,
+                          shadows: const [
+                            Shadow(
+                              color: Colors.black,
+                              offset: Offset(1.5, 1.5),
                             ),
-                          ),
-                          const SizedBox(width: 4),
-                          Icon(
-                            Icons.bolt_rounded,
-                            color: Colors.white,
-                            size: isCompactHeight ? 22 : 26,
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -1348,20 +1371,66 @@ class _ServerPosScreenState extends State<ServerPosScreen> {
     );
   }
 
-  Widget _buildQuickCashBtn(String label, double value, bool isCompactHeight) {
-    final isSelected = widget.controller.selectedCashTendered == value;
+  Widget _buildCashAddBtn(String label, double value, bool isCompactHeight) {
     return Expanded(
       child: MangaPressButton(
-        onTap: () => widget.controller.selectQuickCash(value),
-        height: isCompactHeight ? 30 : 34,
-        borderRadius: 7,
-        backgroundColor: isSelected ? MangaColors.accentYellow : Colors.white,
+        onTap: () => widget.controller.addCashTendered(value),
+        height: isCompactHeight ? 25 : 29,
+        padding: EdgeInsets.zero,
+        borderRadius: 6,
+        backgroundColor: Colors.white,
         hoverColor: MangaColors.accentYellow,
         child: Center(
           child: Text(
             label,
             style: MangaFonts.comic(
-                fontSize: isCompactHeight ? 15 : 17, color: Colors.black),
+              fontSize: isCompactHeight ? 12 : 14,
+              color: Colors.black,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildExactoBtn(double grandTotal, bool isCompactHeight) {
+    return Expanded(
+      child: MangaPressButton(
+        onTap: () => widget.controller.selectQuickCash(grandTotal),
+        height: isCompactHeight ? 25 : 29,
+        padding: EdgeInsets.zero,
+        borderRadius: 6,
+        backgroundColor: MangaColors.accentCyan,
+        hoverColor: MangaColors.accentCyanDark,
+        child: Center(
+          child: Text(
+            'EXACTO',
+            style: MangaFonts.comic(
+              fontSize: isCompactHeight ? 10.5 : 12,
+              color: Colors.white,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildClearCashBtn(bool isCompactHeight) {
+    return Expanded(
+      child: MangaPressButton(
+        onTap: () => widget.controller.clearCashTendered(),
+        height: isCompactHeight ? 25 : 29,
+        padding: EdgeInsets.zero,
+        borderRadius: 6,
+        backgroundColor: MangaColors.dangerSoftRed,
+        hoverColor: MangaColors.dangerRed,
+        child: Center(
+          child: Text(
+            'CERO',
+            style: MangaFonts.comic(
+              fontSize: isCompactHeight ? 10.5 : 12,
+              color: MangaColors.dangerRed,
+            ),
           ),
         ),
       ),
