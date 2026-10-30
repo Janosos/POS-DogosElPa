@@ -53,6 +53,9 @@ class MangaShadows {
 }
 
 class MangaFonts {
+  static final TextStyle _baseComic = GoogleFonts.bangers();
+  static final TextStyle _baseSans = GoogleFonts.plusJakartaSans();
+
   static TextStyle comic({
     double fontSize = 20,
     Color color = Colors.black,
@@ -60,7 +63,7 @@ class MangaFonts {
     double? height,
     List<Shadow>? shadows,
   }) {
-    return GoogleFonts.bangers(
+    return _baseComic.copyWith(
       fontSize: fontSize,
       color: color,
       letterSpacing: letterSpacing,
@@ -77,7 +80,7 @@ class MangaFonts {
     double? height,
     TextDecoration? decoration,
   }) {
-    return GoogleFonts.plusJakartaSans(
+    return _baseSans.copyWith(
       fontSize: fontSize,
       fontWeight: fontWeight,
       color: color,

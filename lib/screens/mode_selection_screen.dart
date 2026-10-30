@@ -99,24 +99,31 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen> {
                                   size: 20,
                                 ),
                                 const SizedBox(width: 8),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'IP LOCAL DE ESTE DISPOSITIVO',
-                                      style: MangaFonts.sans(
-                                        fontSize: 9.5,
-                                        fontWeight: FontWeight.w900,
+                                Flexible(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        'IP LOCAL DE ESTE DISPOSITIVO',
+                                        style: MangaFonts.sans(
+                                          fontSize: 9.5,
+                                          fontWeight: FontWeight.w900,
+                                        ),
                                       ),
-                                    ),
-                                    Text(
-                                      '$ips : ${widget.controller.configuredPort}',
-                                      style: MangaFonts.sans(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w800,
+                                      FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        alignment: Alignment.centerLeft,
+                                        child: Text(
+                                          '$ips : ${widget.controller.configuredPort}',
+                                          style: MangaFonts.sans(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ],
                             ),
@@ -177,25 +184,31 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: MangaColors.primaryOrange,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.black, width: 2),
-                  boxShadow: MangaShadows.sm,
-                ),
-                child: Text(
-                  '★ OPCIÓN 1 · MODO HORIZONTAL',
-                  style: MangaFonts.comic(
-                    fontSize: 16,
-                    color: Colors.white,
+              Flexible(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: MangaColors.primaryOrange,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.black, width: 2),
+                    boxShadow: MangaShadows.sm,
+                  ),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      '★ OPCIÓN 1 · MODO HORIZONTAL',
+                      style: MangaFonts.comic(
+                        fontSize: 16,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
                 ),
               ),
+              const SizedBox(width: 8),
               Container(
                 width: 42,
                 height: 42,
@@ -248,47 +261,49 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen> {
           const SizedBox(height: 14),
           MangaPressButton(
             onTap: () => widget.controller.selectServerMode(),
-            height: 54,
+            height: 56,
             width: double.infinity,
             backgroundColor: MangaColors.primaryOrange,
             hoverColor: MangaColors.primaryOrangeHover,
             borderWidth: 3,
             borderRadius: 12,
             shadow: MangaShadows.md,
-            padding: const EdgeInsets.symmetric(horizontal: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: MangaColors.accentYellow,
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: Colors.black, width: 2),
-                      ),
-                      child: Text(
-                        '¡ENTRAR!',
-                        style: MangaFonts.comic(
-                          fontSize: 20,
-                          color: Colors.black,
-                        ),
-                      ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: MangaColors.accentYellow,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: Colors.black, width: 2),
+                  ),
+                  child: Text(
+                    '¡ENTRAR!',
+                    style: MangaFonts.comic(
+                      fontSize: 18,
+                      color: Colors.black,
                     ),
-                    const SizedBox(width: 10),
-                    Text(
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
                       'INICIAR COMO SERVIDOR',
                       style: MangaFonts.comic(
-                        fontSize: 21,
+                        fontSize: 20,
                         color: Colors.white,
                       ),
                     ),
-                  ],
+                  ),
                 ),
+                const SizedBox(width: 8),
                 const Icon(
                   Icons.screen_rotation_rounded,
                   color: Colors.white,
@@ -317,25 +332,31 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: MangaColors.accentCyan,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.black, width: 2),
-                  boxShadow: MangaShadows.sm,
-                ),
-                child: Text(
-                  '⚡ OPCIÓN 2 · CELULAR VERTICAL',
-                  style: MangaFonts.comic(
-                    fontSize: 16,
-                    color: Colors.white,
+              Flexible(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: MangaColors.accentCyan,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.black, width: 2),
+                    boxShadow: MangaShadows.sm,
+                  ),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      '⚡ OPCIÓN 2 · CELULAR VERTICAL',
+                      style: MangaFonts.comic(
+                        fontSize: 16,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
                 ),
               ),
+              const SizedBox(width: 8),
               Container(
                 width: 42,
                 height: 42,
@@ -438,47 +459,49 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen> {
                 autoConnectIp: ip.isNotEmpty ? ip : null,
               );
             },
-            height: 54,
+            height: 56,
             width: double.infinity,
             backgroundColor: MangaColors.accentCyan,
             hoverColor: MangaColors.accentCyanDark,
             borderWidth: 3,
             borderRadius: 12,
             shadow: MangaShadows.md,
-            padding: const EdgeInsets.symmetric(horizontal: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: MangaColors.accentYellow,
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: Colors.black, width: 2),
-                      ),
-                      child: Text(
-                        '¡CONECTAR!',
-                        style: MangaFonts.comic(
-                          fontSize: 20,
-                          color: Colors.black,
-                        ),
-                      ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: MangaColors.accentYellow,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: Colors.black, width: 2),
+                  ),
+                  child: Text(
+                    '¡CONECTAR!',
+                    style: MangaFonts.comic(
+                      fontSize: 18,
+                      color: Colors.black,
                     ),
-                    const SizedBox(width: 10),
-                    Text(
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
                       'INICIAR COMO CLIENTE',
                       style: MangaFonts.comic(
-                        fontSize: 21,
+                        fontSize: 20,
                         color: Colors.white,
                       ),
                     ),
-                  ],
+                  ),
                 ),
+                const SizedBox(width: 8),
                 const Icon(
                   Icons.wifi_find_rounded,
                   color: Colors.white,

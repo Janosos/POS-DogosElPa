@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import '../theme/manga_theme.dart';
 
@@ -18,54 +19,65 @@ class HalftoneBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: _HalftonePainter(
-        backgroundColor: backgroundColor,
-        dotColor: dotColor,
+    return DecoratedBox(
+      decoration: BoxDecoration(color: backgroundColor),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          RepaintBoundary(
+            child: CustomPaint(
+              painter: _HalftoneTilePainter(dotColor: dotColor),
+            ),
+          ),
+          child,
+        ],
       ),
-      child: child,
     );
   }
 }
 
-class _HalftonePainter extends CustomPainter {
-  final Color backgroundColor;
+class _HalftoneTilePainter extends CustomPainter {
   final Color dotColor;
+  static ui.ImageShader? _tileShader;
+  static bool _isGenerating = false;
 
-  _HalftonePainter({
-    required this.backgroundColor,
-    required this.dotColor,
-  });
+  _HalftoneTilePainter({required this.dotColor});
+
+  static void _ensureTile(Color color) {
+    if (_tileShader != null || _isGenerating) return;
+    _isGenerating = true;
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder, const Rect.fromLTWH(0, 0, 24, 24));
+    final dotPaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(const Offset(6, 6), 0.9, dotPaint);
+    canvas.drawCircle(const Offset(18, 18), 0.9, dotPaint);
+    final picture = recorder.endRecording();
+    picture.toImage(24, 24).then((img) {
+      _tileShader = ui.ImageShader(
+        img,
+        TileMode.repeated,
+        TileMode.repeated,
+        Matrix4.identity().storage,
+      );
+      _isGenerating = false;
+    });
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
-    final bgPaint = Paint()..color = backgroundColor;
-    canvas.drawRect(Offset.zero & size, bgPaint);
-
-    final dotPaint = Paint()
-      ..color = dotColor
-      ..style = PaintingStyle.fill;
-
-    const double step = 14.0;
-    const double radius = 0.85;
-
-    for (double y = 0; y < size.height; y += step) {
-      for (double x = 0; x < size.width; x += step) {
-        canvas.drawCircle(Offset(x, y), radius, dotPaint);
-        canvas.drawCircle(
-          Offset(x + step / 2, y + step / 2),
-          radius,
-          dotPaint,
-        );
-      }
+    if (_tileShader == null) {
+      _ensureTile(dotColor);
+      return;
     }
+    final paint = Paint()..shader = _tileShader;
+    canvas.drawRect(Offset.zero & size, paint);
   }
 
   @override
-  bool shouldRepaint(covariant _HalftonePainter oldDelegate) {
-    return oldDelegate.backgroundColor != backgroundColor ||
-        oldDelegate.dotColor != dotColor;
-  }
+  bool shouldRepaint(covariant _HalftoneTilePainter oldDelegate) =>
+      oldDelegate.dotColor != dotColor;
 }
 
 class MangaPressButton extends StatefulWidget {
@@ -180,27 +192,43 @@ class MangaDashedDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final boxWidth = constraints.constrainWidth();
-        const dashWidth = 5.0;
-        const dashSpace = 4.0;
-        final dashCount = (boxWidth / (dashWidth + dashSpace)).floor();
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: List.generate(dashCount, (_) {
-            return SizedBox(
-              width: dashWidth,
-              height: height,
-              child: DecoratedBox(
-                decoration: BoxDecoration(color: color),
-              ),
-            );
-          }),
-        );
-      },
+    return SizedBox(
+      height: height,
+      width: double.infinity,
+      child: CustomPaint(
+        painter: _DashedLinePainter(color: color, height: height),
+      ),
     );
   }
+}
+
+class _DashedLinePainter extends CustomPainter {
+  final Color color;
+  final double height;
+
+  _DashedLinePainter({required this.color, required this.height});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = height
+      ..style = PaintingStyle.stroke;
+
+    const double dashWidth = 5.0;
+    const double dashSpace = 4.0;
+    double x = 0;
+    final y = size.height / 2;
+
+    while (x < size.width) {
+      canvas.drawLine(Offset(x, y), Offset(x + dashWidth, y), paint);
+      x += dashWidth + dashSpace;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashedLinePainter oldDelegate) =>
+      oldDelegate.color != color || oldDelegate.height != height;
 }
 
 class ProductImageDisplay extends StatelessWidget {
@@ -209,6 +237,8 @@ class ProductImageDisplay extends StatelessWidget {
   final String? imageUrl;
   final String fallbackLabel;
   final BoxFit fit;
+
+  static final Map<String, Uint8List> _base64Cache = {};
 
   const ProductImageDisplay({
     super.key,
@@ -221,30 +251,34 @@ class ProductImageDisplay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 1. Check local file path first
+    // 1. Check local file path first (Async file image decoding with downsampling cache)
     if (localImagePath != null && localImagePath!.isNotEmpty) {
-      final file = File(localImagePath!);
-      if (file.existsSync()) {
-        return Image.file(
-          file,
-          fit: fit,
-          width: double.infinity,
-          height: double.infinity,
-          errorBuilder: (_, _, _) => _buildBase64OrNetworkFallback(),
-        );
-      }
+      return Image.file(
+        File(localImagePath!),
+        fit: fit,
+        cacheWidth: 320,
+        cacheHeight: 320,
+        width: double.infinity,
+        height: double.infinity,
+        errorBuilder: (_, _, _) => _buildBase64OrNetworkFallback(),
+      );
     }
     return _buildBase64OrNetworkFallback();
   }
 
   Widget _buildBase64OrNetworkFallback() {
-    // 2. Check embedded Base64 data (portable across devices & LAN!)
+    // 2. Check embedded Base64 data (cached in memory for high FPS scrolling)
     if (imageBase64 != null && imageBase64!.isNotEmpty) {
       try {
-        final Uint8List bytes = base64Decode(imageBase64!);
+        final Uint8List bytes = _base64Cache.putIfAbsent(
+          imageBase64!,
+          () => base64Decode(imageBase64!),
+        );
         return Image.memory(
           bytes,
           fit: fit,
+          cacheWidth: 320,
+          cacheHeight: 320,
           width: double.infinity,
           height: double.infinity,
           errorBuilder: (_, _, _) => _buildNetworkOrEmojiFallback(),
@@ -260,6 +294,8 @@ class ProductImageDisplay extends StatelessWidget {
       return Image.network(
         imageUrl!,
         fit: fit,
+        cacheWidth: 320,
+        cacheHeight: 320,
         width: double.infinity,
         height: double.infinity,
         errorBuilder: (_, _, _) => _buildComicPlaceholder(),

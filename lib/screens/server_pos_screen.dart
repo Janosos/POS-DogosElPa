@@ -290,66 +290,62 @@ class _ServerPosScreenState extends State<ServerPosScreen> {
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          return SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              child: IntrinsicHeight(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          return SizedBox(
+            height: constraints.maxHeight,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
                   children: [
-                    Column(
-                      children: [
-                        _buildSidebarItem(
-                          index: 0,
-                          currentIndex: currentIdx,
-                          icon: Icons.grid_view_rounded,
-                          label: 'VENTA',
-                          height: itemHeight,
-                          isCompact: isCompact,
-                        ),
-                        SizedBox(height: isCompact ? 6 : 10),
-                        _buildSidebarItem(
-                          index: 1,
-                          currentIndex: currentIdx,
-                          icon: Icons.inventory_2_rounded,
-                          label: 'PRODUCTOS',
-                          height: itemHeight,
-                          isCompact: isCompact,
-                        ),
-                        SizedBox(height: isCompact ? 6 : 10),
-                        _buildSidebarItem(
-                          index: 2,
-                          currentIndex: currentIdx,
-                          icon: Icons.receipt_long_rounded,
-                          label: 'TICKETS',
-                          height: itemHeight,
-                          isCompact: isCompact,
-                        ),
-                        SizedBox(height: isCompact ? 6 : 10),
-                        _buildSidebarItem(
-                          index: 3,
-                          currentIndex: currentIdx,
-                          icon: Icons.query_stats_rounded,
-                          label: 'CIERRE',
-                          height: itemHeight,
-                          isCompact: isCompact,
-                        ),
-                      ],
+                    _buildSidebarItem(
+                      index: 0,
+                      currentIndex: currentIdx,
+                      icon: Icons.grid_view_rounded,
+                      label: 'VENTA',
+                      height: itemHeight,
+                      isCompact: isCompact,
                     ),
-                    Padding(
-                      padding: const EdgeInsets.only(top: 6),
-                      child: _buildSidebarItem(
-                        index: 4,
-                        currentIndex: currentIdx,
-                        icon: Icons.settings_rounded,
-                        label: 'AJUSTES',
-                        height: isCompact ? 46 : 54,
-                        isCompact: isCompact,
-                      ),
+                    SizedBox(height: isCompact ? 6 : 10),
+                    _buildSidebarItem(
+                      index: 1,
+                      currentIndex: currentIdx,
+                      icon: Icons.inventory_2_rounded,
+                      label: 'PRODUCTOS',
+                      height: itemHeight,
+                      isCompact: isCompact,
+                    ),
+                    SizedBox(height: isCompact ? 6 : 10),
+                    _buildSidebarItem(
+                      index: 2,
+                      currentIndex: currentIdx,
+                      icon: Icons.receipt_long_rounded,
+                      label: 'TICKETS',
+                      height: itemHeight,
+                      isCompact: isCompact,
+                    ),
+                    SizedBox(height: isCompact ? 6 : 10),
+                    _buildSidebarItem(
+                      index: 3,
+                      currentIndex: currentIdx,
+                      icon: Icons.query_stats_rounded,
+                      label: 'CIERRE',
+                      height: itemHeight,
+                      isCompact: isCompact,
                     ),
                   ],
                 ),
-              ),
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: _buildSidebarItem(
+                    index: 4,
+                    currentIndex: currentIdx,
+                    icon: Icons.settings_rounded,
+                    label: 'AJUSTES',
+                    height: isCompact ? 46 : 54,
+                    isCompact: isCompact,
+                  ),
+                ),
+              ],
             ),
           );
         },
@@ -665,13 +661,17 @@ class _ServerPosScreenState extends State<ServerPosScreen> {
                         mainAxisSpacing: 12,
                       ),
                       itemCount: products.length,
+                      addRepaintBoundaries: true,
+                      addAutomaticKeepAlives: true,
                       itemBuilder: (context, index) {
                         final product = products[index];
-                        return _buildMangaProductCard(
-                          context,
-                          product,
-                          index: index,
-                          isCompactHeight: isCompactHeight,
+                        return RepaintBoundary(
+                          child: _buildMangaProductCard(
+                            context,
+                            product,
+                            index: index,
+                            isCompactHeight: isCompactHeight,
+                          ),
                         );
                       },
                     );

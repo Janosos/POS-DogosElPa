@@ -172,6 +172,11 @@ class PosController extends ChangeNotifier {
     };
   }
 
+  Future<File> _getPersistentFile(String fileName) async {
+    final appDir = await getApplicationDocumentsDirectory();
+    return File('${appDir.path}/$fileName');
+  }
+
   Future<void> _initData() async {
     _localIps = await lanService.getLocalIps();
     final prefs = await SharedPreferences.getInstance();
@@ -187,28 +192,83 @@ class PosController extends ChangeNotifier {
     // Always enforce only the allowed Dogos categories: TODOS, DOGOS, PAPAS, COMBOS
     _categories = List.from(DefaultCatalog.defaultCategories);
 
-    // Load products
-    final rawProds = prefs.getString(_prefsProductsKey);
-    if (rawProds != null && rawProds.isNotEmpty) {
-      try {
-        final decoded = jsonDecode(rawProds) as List;
-        _products = decoded
-            .map((e) => Product.fromJson(Map<String, dynamic>.from(e as Map)))
-            .toList();
-      } catch (_) {}
-    } else {
+    // 1. Primary: Load products from dedicated local JSON file
+    bool loadedProducts = false;
+    try {
+      final catalogFile = await _getPersistentFile('pos_catalog_products.json');
+      if (await catalogFile.exists()) {
+        final content = await catalogFile.readAsString();
+        if (content.trim().isNotEmpty) {
+          final decoded = jsonDecode(content) as List;
+          if (decoded.isNotEmpty) {
+            _products = decoded
+                .map((e) =>
+                    Product.fromJson(Map<String, dynamic>.from(e as Map)))
+                .toList();
+            loadedProducts = true;
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading products from local file: $e');
+    }
+
+    // Fallback: If not found in file, try SharedPreferences
+    if (!loadedProducts) {
+      final rawProds = prefs.getString(_prefsProductsKey);
+      if (rawProds != null && rawProds.isNotEmpty) {
+        try {
+          final decoded = jsonDecode(rawProds) as List;
+          if (decoded.isNotEmpty) {
+            _products = decoded
+                .map((e) =>
+                    Product.fromJson(Map<String, dynamic>.from(e as Map)))
+                .toList();
+            loadedProducts = true;
+            // Migrate immediately to persistent file
+            await _saveCatalogToStorage();
+          }
+        } catch (_) {}
+      }
+    }
+
+    // If still empty (first clean install), save defaults to persistent file
+    if (!loadedProducts) {
       await _saveCatalogToStorage();
     }
 
-    // Load orders
-    final rawOrders = prefs.getString(_prefsOrdersKey);
-    if (rawOrders != null && rawOrders.isNotEmpty) {
-      try {
-        final decoded = jsonDecode(rawOrders) as List;
-        _orders = decoded
-            .map((e) => PosOrder.fromJson(Map<String, dynamic>.from(e as Map)))
-            .toList();
-      } catch (_) {}
+    // 2. Primary: Load orders from dedicated local JSON file
+    bool loadedOrders = false;
+    try {
+      final ordersFile = await _getPersistentFile('pos_orders_history.json');
+      if (await ordersFile.exists()) {
+        final content = await ordersFile.readAsString();
+        if (content.trim().isNotEmpty) {
+          final decoded = jsonDecode(content) as List;
+          _orders = decoded
+              .map((e) =>
+                  PosOrder.fromJson(Map<String, dynamic>.from(e as Map)))
+              .toList();
+          loadedOrders = true;
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading orders from local file: $e');
+    }
+
+    // Fallback for orders: SharedPreferences
+    if (!loadedOrders) {
+      final rawOrders = prefs.getString(_prefsOrdersKey);
+      if (rawOrders != null && rawOrders.isNotEmpty) {
+        try {
+          final decoded = jsonDecode(rawOrders) as List;
+          _orders = decoded
+              .map((e) =>
+                  PosOrder.fromJson(Map<String, dynamic>.from(e as Map)))
+              .toList();
+          await _saveOrdersToStorage();
+        } catch (_) {}
+      }
     }
 
     // Seed initial sample ticket items matching user's Dogos example if empty
@@ -1008,6 +1068,14 @@ class PosController extends ChangeNotifier {
 
   Future<void> _saveCatalogToStorage() async {
     try {
+      // 1. Primary: Save to local persistent JSON file with flush
+      final catalogFile = await _getPersistentFile('pos_catalog_products.json');
+      final jsonStr = jsonEncode(
+        _products.map((p) => p.toJson(includeBase64: true)).toList(),
+      );
+      await catalogFile.writeAsString(jsonStr, flush: true);
+
+      // 2. Secondary: Save lightweight version to SharedPreferences
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(
         _prefsCategoriesKey,
@@ -1015,23 +1083,32 @@ class PosController extends ChangeNotifier {
       );
       await prefs.setString(
         _prefsProductsKey,
-        jsonEncode(_products.map((p) => p.toJson(includeBase64: true)).toList()),
+        jsonEncode(
+            _products.map((p) => p.toJson(includeBase64: false)).toList()),
       );
     } catch (e) {
-      debugPrint('Error saving catalog to prefs: $e');
+      debugPrint('Error saving catalog to storage: $e');
     }
   }
 
   Future<void> _saveOrdersToStorage() async {
     try {
+      // 1. Primary: Save to local persistent JSON file
+      final ordersFile = await _getPersistentFile('pos_orders_history.json');
+      final jsonStr = jsonEncode(
+        _orders.map((o) => o.toJson(includeBase64: false)).toList(),
+      );
+      await ordersFile.writeAsString(jsonStr, flush: true);
+
+      // 2. Secondary: Save trimmed list to SharedPreferences
       final prefs = await SharedPreferences.getInstance();
-      final trimmed = _orders.take(150).toList();
+      final trimmed = _orders.take(200).toList();
       await prefs.setString(
         _prefsOrdersKey,
         jsonEncode(trimmed.map((o) => o.toJson(includeBase64: false)).toList()),
       );
     } catch (e) {
-      debugPrint('Error saving orders to prefs: $e');
+      debugPrint('Error saving orders to storage: $e');
     }
   }
 

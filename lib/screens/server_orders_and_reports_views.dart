@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../controllers/pos_controller.dart';
 import '../models/pos_models.dart';
+import '../services/cierre_excel_service.dart';
 import '../services/receipt_pdf_service.dart';
 import '../theme/manga_theme.dart';
 import '../widgets/manga_widgets.dart';
@@ -490,18 +491,135 @@ class ServerReportsView extends StatelessWidget {
                     ),
                   ],
                 ),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: MangaColors.accentYellow,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.black, width: 2),
+                        boxShadow: MangaShadows.sm,
+                      ),
+                      child: Text(
+                        'TOTAL: \$${totalSales.toStringAsFixed(2)}',
+                        style: MangaFonts.comic(fontSize: 22),
+                      ),
+                    ),
+                    MangaPressButton(
+                      onTap: () => _handleGenerateExcelReport(context),
+                      height: 42,
+                      backgroundColor: MangaColors.accentMint,
+                      hoverColor: MangaColors.accentMintDark,
+                      borderWidth: 2,
+                      borderRadius: 10,
+                      shadow: MangaShadows.sm,
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.table_chart_rounded,
+                            size: 20,
+                            color: Colors.black,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'GENERAR REPORTE',
+                            style: MangaFonts.comic(
+                              fontSize: 17,
+                              color: Colors.black,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Excel Report Quick Banner Card
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: MangaColors.surfaceWhite,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.black, width: 2.5),
+              boxShadow: MangaShadows.md,
+            ),
+            child: Row(
+              children: [
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  width: 48,
+                  height: 48,
                   decoration: BoxDecoration(
-                    color: MangaColors.accentYellow,
-                    borderRadius: BorderRadius.circular(8),
+                    color: MangaColors.accentMint,
+                    borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: Colors.black, width: 2),
-                    boxShadow: MangaShadows.sm,
                   ),
-                  child: Text(
-                    'TOTAL: \$${totalSales.toStringAsFixed(2)}',
-                    style: MangaFonts.comic(fontSize: 22),
+                  child: const Icon(
+                    Icons.description_rounded,
+                    size: 28,
+                    color: Colors.black,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'REPORTE DE CORTE DE CAJA (EXCEL .XLSX)',
+                        style: MangaFonts.comic(fontSize: 18),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Genera un archivo profesional con 3 hojas: Resumen Financiero por forma de pago, Detalle de tickets y Ventas por producto.',
+                        style: MangaFonts.sans(
+                          fontSize: 11,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                MangaPressButton(
+                  onTap: () => _handleGenerateExcelReport(context),
+                  height: 44,
+                  backgroundColor: MangaColors.primaryOrange,
+                  hoverColor: MangaColors.primaryOrangeHover,
+                  borderWidth: 2.5,
+                  borderRadius: 10,
+                  shadow: MangaShadows.sm,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.download_rounded,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'GENERAR REPORTE',
+                        style: MangaFonts.comic(
+                          fontSize: 18,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -688,6 +806,187 @@ class ServerReportsView extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _handleGenerateExcelReport(BuildContext context) async {
+    try {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.2,
+                  color: Colors.black,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Generando reporte Excel profesional...',
+                style: MangaFonts.comic(fontSize: 16, color: Colors.black),
+              ),
+            ],
+          ),
+          backgroundColor: MangaColors.accentYellow,
+          duration: const Duration(seconds: 1),
+        ),
+      );
+
+      final result = await CierreExcelReportService.generateCierreExcel(
+        storeName: controller.storeName,
+        cashierName: controller.cashierName,
+        shiftLabel: controller.shiftLabel,
+        orders: controller.orders,
+      );
+
+      if (!context.mounted) return;
+
+      showDialog<void>(
+        context: context,
+        builder: (ctx) {
+          return AlertDialog(
+            backgroundColor: MangaColors.surfaceWhite,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: const BorderSide(color: Colors.black, width: 3),
+            ),
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: MangaColors.accentMint,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.black, width: 2),
+                  ),
+                  child: const Icon(
+                    Icons.check_circle_outline_rounded,
+                    color: Colors.black,
+                    size: 28,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    '¡REPORTE GENERADO CON ÉXITO!',
+                    style: MangaFonts.comic(fontSize: 22),
+                  ),
+                ),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'El reporte en formato Excel (.xlsx) ha sido generado con diseño contable y listo para compartir o almacenar.',
+                  style: MangaFonts.sans(fontSize: 13, color: Colors.black87),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: MangaColors.ticketFooterBg,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.black, width: 1.5),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'ARCHIVO:',
+                        style: MangaFonts.sans(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.black54,
+                        ),
+                      ),
+                      Text(
+                        result.fileName,
+                        style: MangaFonts.sans(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'UBICACIÓN: ${result.filePath}',
+                        style: MangaFonts.sans(
+                          fontSize: 10.5,
+                          color: Colors.black54,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              MangaPressButton(
+                onTap: () => Navigator.of(ctx).pop(),
+                height: 40,
+                backgroundColor: Colors.white,
+                borderWidth: 2,
+                borderRadius: 8,
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                child: Text(
+                  'CERRAR',
+                  style: MangaFonts.comic(fontSize: 16),
+                ),
+              ),
+              MangaPressButton(
+                onTap: () async {
+                  Navigator.of(ctx).pop();
+                  await CierreExcelReportService.shareOrSaveExcelReport(
+                    filePath: result.filePath,
+                    bytes: result.bytes,
+                    fileName: result.fileName,
+                  );
+                },
+                height: 40,
+                backgroundColor: MangaColors.primaryOrange,
+                hoverColor: MangaColors.primaryOrangeHover,
+                borderWidth: 2,
+                borderRadius: 8,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.share_rounded,
+                      color: Colors.white,
+                      size: 18,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'COMPARTIR / GUARDAR',
+                      style: MangaFonts.comic(
+                        fontSize: 16,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Error al generar el reporte Excel: $e',
+            style: MangaFonts.comic(fontSize: 15, color: Colors.white),
+          ),
+          backgroundColor: MangaColors.dangerRed,
+        ),
+      );
+    }
   }
 }
 
